@@ -55,7 +55,8 @@ const word_t NODEMASK = (EDGEMASK << 1) | (word_t)1;
 #ifndef IDXSHIFT
 // minimum shift that allows cycle finding data to fit in node bitmap space
 // allowing them to share the same memory
-#define IDXSHIFT (PART_BITS + 8)
+// rbshi: do not compress so much for small edges
+#define IDXSHIFT (PART_BITS + 5)
 #endif
 #define MAXEDGES (NEDGES >> IDXSHIFT)
 
@@ -117,7 +118,8 @@ public:
   cuckoo_ctx(u32 n_threads, u32 n_trims, u32 max_sols, bool mutate_nonce) : alive(n_threads), nonleaf(NEDGES >> PART_BITS),
       cg(MAXEDGES, MAXEDGES, max_sols, IDXSHIFT, (char *)nonleaf.bits), barry(n_threads) {
     print_log("cg.bytes %llu NEDGES/8 %llu\n", cg.bytes(), NEDGES/8);
-    assert(cg.bytes() <= NEDGES/8); // check that graph cg can fit in share nonleaf's memory
+    // rbshi
+    // assert(cg.bytes() <= NEDGES/8); // check that graph cg can fit in share nonleaf's memory
     nthreads = n_threads;
     ntrims = n_trims;
     sols = new proof[max_sols];
