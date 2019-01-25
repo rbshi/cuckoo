@@ -4,6 +4,8 @@
 // http://da-data.blogspot.com/2014/03/a-public-review-of-cuckoo-cycle.html
 // The use of prefetching was suggested by Alexander Peslyak (aka Solar Designer)
 
+#include "stdio.h"
+
 #ifdef ATOMIC
 #include <atomic>
 #endif
@@ -47,7 +49,7 @@ const word_t NODEMASK = (EDGEMASK << 1) | (word_t)1;
 // how many prefetches to queue up
 // before accessing the memory
 // must be a multiple of NSIPHASH
-#define NPREFETCH 32
+#define NPREFETCH 1
 #endif
 
 #ifndef IDXSHIFT
@@ -151,22 +153,25 @@ public:
   void node_deg(const u64 *hashes, const u32 nsiphash, const u32 part) {
     for (u32 i=0; i < nsiphash; i++) {
       u64 u = hashes[i] & EDGEMASK;
-      if ((u >> NONPART_BITS) == part) {
-        nonleaf.set(u & NONPART_MASK);
-      }
+//      if ((u >> NONPART_BITS) == part) {
+      nonleaf.set(u & NONPART_MASK);
+//      }
     }
   }
   void kill(const u64 *hashes, const u64 *indices, const u32 nsiphash, const u32 part, const u32 id) {
     for (u32 i=0; i < nsiphash; i++) {
       u64 u = hashes[i] & EDGEMASK;
-      if ((u >> NONPART_BITS) == part && !nonleaf.test((u & NONPART_MASK) ^ 1)) {
-        alive.reset(indices[i]/2, id);
+//      if ((u >> NONPART_BITS) == part && !nonleaf.test((u & NONPART_MASK) ^ 1)) {
+        if (!nonleaf.test((u & NONPART_MASK) ^ 1)) {
+            alive.reset(indices[i]/2, id);
       }
     }
   }
   void count_node_deg(const u32 id, const u32 uorv, const u32 part) {
     alignas(64) u64 indices[NSIPHASH];
     alignas(64) u64 hashes[NPREFETCH];
+
+    int sum_edge = 0;
   
     memset(hashes, 0, NPREFETCH * sizeof(u64)); // allow many nonleaf.set(0) to reduce branching
     u32 nidx = 0;
@@ -175,21 +180,33 @@ public:
       for (word_t nonce = block-1; alive64; ) { // -1 compensates for 1-based ffs
         u32 ffs = __builtin_ffsll(alive64);
         nonce += ffs; alive64 >>= ffs;
-        indices[nidx++ % NSIPHASH] = 2*nonce + uorv;
-        if (nidx % NSIPHASH == 0) {
-          node_deg(hashes+nidx-NSIPHASH, NSIPHASH, part);
-          siphash24xN(&sip_keys, indices, hashes+nidx-NSIPHASH);
-          prefetch(hashes+nidx-NSIPHASH, part);
-          nidx %= NPREFETCH;
-        }
+        sum_edge++;
+
+//        indices[nidx++ % NSIPHASH] = 2*nonce + uorv;
+//        if (nidx % NSIPHASH == 0) {
+//          node_deg(hashes+nidx-NSIPHASH, NSIPHASH, part);
+//          siphash24xN(&sip_keys, indices, hashes+nidx-NSIPHASH);
+//          // prefetch(hashes+nidx-NSIPHASH, part);
+//          nidx %= NPREFETCH;
+//        }
+
+          indices[0] = 2*nonce + uorv;
+          node_deg(hashes, NSIPHASH, part);
+          siphash24xN(&sip_keys, indices, hashes);
+          // prefetch(hashes+nidx-NSIPHASH, part);
+          nidx = 0;
+
         if (ffs & 64) break; // can't shift by 64
       }
     }
     node_deg(hashes, NPREFETCH, part);
-    if (nidx % NSIPHASH != 0) {
-      siphash24xN(&sip_keys, indices, hashes+(nidx&-NSIPHASH));
-      node_deg(hashes+(nidx&-NSIPHASH), nidx%NSIPHASH, part);
-    }
+//    if (nidx % NSIPHASH != 0) {
+//      siphash24xN(&sip_keys, indices, hashes+(nidx&-NSIPHASH));
+//      node_deg(hashes+(nidx&-NSIPHASH), nidx%NSIPHASH, part);
+//    }
+
+//    printf("sumedge=%d\n", sum_edge);
+
   }
   void kill_leaf_edges(const u32 id, const u32 uorv, const u32 part) {
     alignas(64) u64 indices[NPREFETCH];
@@ -203,13 +220,23 @@ public:
       for (word_t nonce = block-1; alive64; ) { // -1 compensates for 1-based ffs
         u32 ffs = __builtin_ffsll(alive64);
         nonce += ffs; alive64 >>= ffs;
-        indices[nidx++] = 2*nonce + uorv;
-        if (nidx % NSIPHASH == 0) {
-          siphash24xN(&sip_keys, indices+nidx-NSIPHASH, hashes+nidx-NSIPHASH);
-          prefetch(hashes+nidx-NSIPHASH, part);
-          nidx %= NPREFETCH;
-          kill(hashes+nidx, indices+nidx, NSIPHASH, part, id);
-        }
+
+//        indices[nidx++] = 2*nonce + uorv;
+//        if (nidx % NSIPHASH == 0) {
+//          siphash24xN(&sip_keys, indices+nidx-NSIPHASH, hashes+nidx-NSIPHASH);
+//          // prefetch(hashes+nidx-NSIPHASH, part);
+//          nidx %= NPREFETCH;
+//          kill(hashes+nidx, indices+nidx, NSIPHASH, part, id);
+//        }
+
+
+        indices[0] = 2*nonce + uorv;
+        siphash24xN(&sip_keys, indices, hashes);
+        // prefetch(hashes+nidx-NSIPHASH, part);
+        nidx = 0;
+        kill(hashes, indices, NSIPHASH, part, id);
+
+
         if (ffs & 64) break; // can't shift by 64
       }
     }
@@ -229,8 +256,8 @@ typedef struct {
   cuckoo_ctx *ctx;
 } thread_ctx;
 
-void *worker(void *vp) {
-  thread_ctx *tp = (thread_ctx *)vp;
+void worker(thread_ctx *tp) {
+  // thread_ctx *tp = (thread_ctx *)vp;
   cuckoo_ctx *ctx = tp->ctx;
 
   shrinkingset &alive = ctx->alive;
@@ -240,19 +267,22 @@ void *worker(void *vp) {
     // if (tp->id == 0) print_log("round %2d partition sizes", round);
     for (u32 part = 0; part <= PART_MASK; part++) {
       if (tp->id == 0)
-        ctx->nonleaf.clear(); // clear all counts
-      ctx->barrier();
+      ctx->nonleaf.clear(); // clear all counts
+      // ctx->barrier();
       ctx->count_node_deg(tp->id,round&1,part);
-      ctx->barrier();
+      // ctx->barrier();
       ctx->kill_leaf_edges(tp->id,round&1,part);
+
       // if (tp->id == 0) print_log(" %c%d %d", "UV"[round&1], part, alive.count());
-      ctx->barrier();
+      // ctx->barrier();
     }
     // if (tp->id == 0) print_log("\n");
   }
   if (tp->id != 0)
-    pthread_exit(NULL);
+//    pthread_exit(NULL);
   print_log("%d trims completed  %d edges left\n", round-1, alive.count());
+
+
   ctx->cg.reset();
   for (word_t block = 0; block < NEDGES; block += 64) {
     u64 alive64 = alive.block(block);
@@ -280,6 +310,5 @@ void *worker(void *vp) {
     assert (j == PROOFSIZE);
   }
   ctx->nsols = ctx->cg.nsols;
-  pthread_exit(NULL);
-  return 0;
+//  pthread_exit(NULL);
 }

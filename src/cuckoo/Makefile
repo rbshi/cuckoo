@@ -1,14 +1,14 @@
 .POSIX:
 .SUFFIXES:
 
-OPT ?= -O3
+OPT ?= 
 
 GCC_ARCH_FLAGS ?= -march=native
 GPP_ARCH_FLAGS ?= -march=native
 
 # -Wno-deprecated-declarations shuts up Apple OSX clang
 FLAGS ?= -Wall -Wno-format -Wno-deprecated-declarations -D_POSIX_C_SOURCE=200112L $(OPT) -DPREFETCH -I. $(CPPFLAGS) -pthread
-GPP ?= g++ $(GPP_ARCH_FLAGS) -std=c++11 $(FLAGS)
+GPP ?= g++ $(GPP_ARCH_FLAGS) -std=c++11 $(FLAGS) -g3
 CFLAGS ?= -Wall -Wno-format -fomit-frame-pointer $(OPT)
 GCC ?= gcc $(GCC_ARCH_FLAGS) -std=gnu11 $(CFLAGS)
 BLAKE_2B_SRC ?= ../crypto/blake2b-ref.c

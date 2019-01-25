@@ -31,14 +31,15 @@ CALL_CONVENTION int run_solver(SolverCtx* ctx,
     for (u32 t = 0; t < ctx->nthreads; t++) {
       threads[t].id = t;
       threads[t].ctx = ctx;
-      int err = pthread_create(&threads[t].thread, NULL, worker, (void *)&threads[t]);
-      assert(err == 0);
+      worker(&threads[t]);
+      // int err = pthread_create(&threads[t].thread, NULL, worker, (void *)&threads[t]);
+      // assert(err == 0);
     }
     // sleep(39); ctx->abort();
-    for (u32 t = 0; t < ctx->nthreads; t++) {
-      int err = pthread_join(threads[t].thread, NULL);
-      assert(err == 0);
-    }
+//    for (u32 t = 0; t < ctx->nthreads; t++) {
+//      int err = pthread_join(threads[t].thread, NULL);
+//      assert(err == 0);
+//    }
     time1 = timestamp();
     timems = (time1 - time0) / 1000000;
     print_log("Time: %d ms\n", timems);
