@@ -56,7 +56,7 @@ const word_t NODEMASK = (EDGEMASK << 1) | (word_t)1;
 // minimum shift that allows cycle finding data to fit in node bitmap space
 // allowing them to share the same memory
 // rbshi: do not compress so much for small edges
-#define IDXSHIFT (PART_BITS + 5)
+#define IDXSHIFT (PART_BITS + 8)
 #endif
 #define MAXEDGES (NEDGES >> IDXSHIFT)
 
@@ -119,7 +119,8 @@ public:
       cg(MAXEDGES, MAXEDGES, max_sols, IDXSHIFT, (char *)nonleaf.bits), barry(n_threads) {
     print_log("cg.bytes %llu NEDGES/8 %llu\n", cg.bytes(), NEDGES/8);
     // rbshi
-    // assert(cg.bytes() <= NEDGES/8); // check that graph cg can fit in share nonleaf's memory
+    u32 tmp1 = cg.bytes();
+    assert(cg.bytes() <= NEDGES/8); // check that graph cg can fit in share nonleaf's memory
     nthreads = n_threads;
     ntrims = n_trims;
     sols = new proof[max_sols];
