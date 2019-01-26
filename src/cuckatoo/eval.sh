@@ -14,7 +14,7 @@ do
 	
 	echo '================NEDGEBIT='$nedgebit'================'
 	
-	for ((proofsize=16; proofsize<60; proofsize+=4))
+	for ((proofsize=16; proofsize<17; proofsize+=4))
 	do
 		echo '================PROOFSIZE='$proofsize'================'
 		
@@ -25,7 +25,7 @@ do
 		g++ -march=native -std=c++11 -Wall -Wno-format -Wno-deprecated-declarations -D_POSIX_C_SOURCE=200112L -O3 -DPREFETCH -I.  -pthread -o lean.exe -DNSIPHASH=1 -DATOMIC -DEDGEBITS=$nedgebit -DPROOFSIZE=$proofsize lean.cpp ../crypto/blake2b-ref.c	
 		
 		# execution
-		for ((nonce=0; nonce<2000000; nonce+=10))
+		for ((nonce=0; nonce<200; nonce+=1))
 		do
 			# echo 'nonce='$nonce
 			exestring=$(./lean.exe -n $nonce)
