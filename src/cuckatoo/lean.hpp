@@ -116,11 +116,12 @@ public:
   trim_barrier barry;
 
   cuckoo_ctx(u32 n_threads, u32 n_trims, u32 max_sols, bool mutate_nonce) : alive(n_threads), nonleaf(NEDGES >> PART_BITS),
-      cg(MAXEDGES, MAXEDGES, max_sols, IDXSHIFT, (char *)nonleaf.bits), barry(n_threads) {
+//      cg(MAXEDGES, MAXEDGES, max_sols, IDXSHIFT, (char *)nonleaf.bits), barry(n_threads) {
+      cg(MAXEDGES, MAXEDGES, max_sols, IDXSHIFT), barry(n_threads) {
     print_log("cg.bytes %llu NEDGES/8 %llu\n", cg.bytes(), NEDGES/8);
     // rbshi
-    u32 tmp1 = cg.bytes();
-    assert(cg.bytes() <= NEDGES/8); // check that graph cg can fit in share nonleaf's memory
+    // u32 tmp1 = cg.bytes();
+    // assert(cg.bytes() <= NEDGES/8); // check that graph cg can fit in share nonleaf's memory
     nthreads = n_threads;
     ntrims = n_trims;
     sols = new proof[max_sols];

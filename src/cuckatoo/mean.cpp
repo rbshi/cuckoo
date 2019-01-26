@@ -32,11 +32,11 @@ CALL_CONVENTION int run_solver(SolverCtx* ctx,
     print_log("Time: %d ms\n", timems);
 
     for (unsigned s = 0; s < nsols; s++) {
-      print_log("Solution");
+//      print_log("Solution");
       word_t *prf = &ctx->sols[s * PROOFSIZE];
-      for (u32 i = 0; i < PROOFSIZE; i++)
-        print_log(" %jx", (uintmax_t)prf[i]);
-      print_log("\n");
+//      for (u32 i = 0; i < PROOFSIZE; i++)
+//        print_log(" %jx", (uintmax_t)prf[i]);
+//      print_log("\n");
       if (solutions != NULL){
         solutions->edge_bits = EDGEBITS;
         solutions->num_sols++;
@@ -46,14 +46,14 @@ CALL_CONVENTION int run_solver(SolverCtx* ctx,
       }
       int pow_rc = verify(prf, &ctx->trimmer.sip_keys);
       if (pow_rc == POW_OK) {
-        print_log("Verified with cyclehash ");
+//        print_log("Verified with cyclehash ");
         unsigned char cyclehash[32];
         blake2b((void *)cyclehash, sizeof(cyclehash), (const void *)prf, sizeof(proof), 0, 0);
-        for (int i=0; i<32; i++)
-          print_log("%02x", cyclehash[i]);
-        print_log("\n");
+//        for (int i=0; i<32; i++)
+//          print_log("%02x", cyclehash[i]);
+//        print_log("\n");
       } else {
-        print_log("FAILED due to %s\n", errstr[pow_rc]);
+//        print_log("FAILED due to %s\n", errstr[pow_rc]);
       }
     }
     sumnsols += nsols;
