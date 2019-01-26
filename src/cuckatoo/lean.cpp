@@ -40,13 +40,14 @@ CALL_CONVENTION int run_solver(SolverCtx* ctx,
       assert(err == 0);
     }
     time1 = timestamp();
-    timems = (time1 - time0) / 1000000;
-    print_log("Time: %d ms\n", timems);
+    // --rbshi
+    timems = (time1 - time0) / 1000;
+    print_log("Time: %d us\n", timems);
     for (unsigned s = 0; s < ctx->nsols; s++) {
-      print_log("Solution");
+//      print_log("Solution");
       for (int j = 0; j < PROOFSIZE; j++)
-        print_log(" %jx", (uintmax_t)ctx->sols[s][j]);
-      print_log("\n");
+//        print_log(" %jx", (uintmax_t)ctx->sols[s][j]);
+//      print_log("\n");
       if (solutions != NULL){
         solutions->edge_bits = EDGEBITS;
         solutions->num_sols++;
@@ -56,14 +57,14 @@ CALL_CONVENTION int run_solver(SolverCtx* ctx,
       }
       int pow_rc = verify(ctx->sols[s], &ctx->sip_keys);
       if (pow_rc == POW_OK) {
-        print_log("Verified with cyclehash ");
+//        print_log("Verified with cyclehash ");
         unsigned char cyclehash[32];
         blake2b((void *)cyclehash, sizeof(cyclehash), (const void *)ctx->sols[s], sizeof(ctx->sols[0]), 0, 0);
-        for (int i=0; i<32; i++)
-          print_log("%02x", cyclehash[i]);
-        print_log("\n");
+//        for (int i=0; i<32; i++)
+//          print_log("%02x", cyclehash[i]);
+//        print_log("\n");
       } else {
-        print_log("FAILED due to %s\n", errstr[pow_rc]);
+//        print_log("FAILED due to %s\n", errstr[pow_rc]);
       }
       sumnsols += ctx->nsols;
     }
@@ -107,7 +108,9 @@ CALL_CONVENTION void fill_default_params(SolverParams* params) {
 
 int main(int argc, char **argv) {
   int nthreads = 1;
-  int ntrims   = 8 * (PART_BITS+3) * (PART_BITS+4);
+  // --rbshi
+  // int ntrims   = 8 * (PART_BITS+3) * (PART_BITS+4);
+  int ntrims   = 8 * 2;
   int nonce = 0;
   int range = 1;
   char header[HEADERLEN];

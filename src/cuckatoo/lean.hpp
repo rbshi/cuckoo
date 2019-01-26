@@ -16,7 +16,7 @@
 #include <assert.h>
 
 #ifndef MAXSOLS
-#define MAXSOLS 4
+#define MAXSOLS 1
 #endif
 
 typedef uint64_t u64; // save some typing
@@ -55,7 +55,8 @@ const word_t NODEMASK = (EDGEMASK << 1) | (word_t)1;
 // allowing them to share the same memory
 #define IDXSHIFT (PART_BITS + 8)
 #endif
-#define MAXEDGES (NEDGES >> IDXSHIFT)
+#define MAXEDGES (NEDGES)
+//#define MAXEDGES (NEDGES >> IDXSHIFT)
 
 const u32 PART_MASK = (1 << PART_BITS) - 1;
 const u32 NONPART_BITS = EDGEBITS - PART_BITS;
@@ -113,9 +114,13 @@ public:
   trim_barrier barry;
 
   cuckoo_ctx(u32 n_threads, u32 n_trims, u32 max_sols, bool mutate_nonce) : alive(n_threads), nonleaf(NEDGES >> PART_BITS),
-      cg(MAXEDGES, MAXEDGES, max_sols, IDXSHIFT, (char *)nonleaf.bits), barry(n_threads) {
-    print_log("cg.bytes %llu NEDGES/8 %llu\n", cg.bytes(), NEDGES/8);
-    assert(cg.bytes() <= NEDGES/8); // check that graph cg can fit in share nonleaf's memory
+
+    // --rbshi
+    //      cg(MAXEDGES, MAXEDGES, max_sols, IDXSHIFT, (char *)nonleaf.bits), barry(n_threads) {
+    cg(MAXEDGES, MAXEDGES, max_sols), barry(n_threads) {
+
+    // print_log("cg.bytes %llu NEDGES/8 %llu\n", cg.bytes(), NEDGES/8);
+    // assert(cg.bytes() <= NEDGES/8); // check that graph cg can fit in share nonleaf's memory
     nthreads = n_threads;
     ntrims = n_trims;
     sols = new proof[max_sols];
@@ -252,7 +257,7 @@ void *worker(void *vp) {
   }
   if (tp->id != 0)
     pthread_exit(NULL);
-  print_log("%d trims completed  %d edges left\n", round-1, alive.count());
+  print_log("%d trim completed  %d edges left\n", round-1, alive.count());
   ctx->cg.reset();
   for (word_t block = 0; block < NEDGES; block += 64) {
     u64 alive64 = alive.block(block);
@@ -260,7 +265,8 @@ void *worker(void *vp) {
       u32 ffs = __builtin_ffsll(alive64);
       nonce += ffs; alive64 >>= ffs;
       word_t u=sipnode(&ctx->sip_keys, nonce, 0), v=sipnode(&ctx->sip_keys, nonce, 1);
-      ctx->cg.add_compress_edge(u, v);
+      // ctx->cg.add_compress_edge(u, v);
+      ctx->cg.add_edge(u, v);
       if (ffs & 64) break; // can't shift by 64
     }
   }

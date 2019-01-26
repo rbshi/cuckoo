@@ -15,7 +15,7 @@ typedef uint32_t u32;
 typedef uint64_t u64;
 
 #ifndef MAX_SOLS
-#define MAX_SOLS 4
+#define MAX_SOLS 40
 #endif
 
 // proof-of-work parameters
