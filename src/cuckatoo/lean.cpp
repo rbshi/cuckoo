@@ -40,8 +40,9 @@ CALL_CONVENTION int run_solver(SolverCtx* ctx,
       assert(err == 0);
     }
     time1 = timestamp();
-    timems = (time1 - time0) / 1000000;
-    print_log("Time: %d ms\n", timems);
+    // --rbshi
+    timems = (time1 - time0) / 1000;
+
     for (unsigned s = 0; s < ctx->nsols; s++) {
       print_log("Solution");
       for (int j = 0; j < PROOFSIZE; j++)
@@ -77,6 +78,7 @@ CALL_CONVENTION int run_solver(SolverCtx* ctx,
     }
   }
   delete[] threads;
+  print_log("Time: %d us\n", timems);
   print_log("%d total solutions\n", sumnsols);
   return 0;
 }
@@ -107,7 +109,9 @@ CALL_CONVENTION void fill_default_params(SolverParams* params) {
 
 int main(int argc, char **argv) {
   int nthreads = 1;
-  int ntrims   = 8 * (PART_BITS+3) * (PART_BITS+4);
+  // --rbshi
+  // int ntrims   = 8 * (PART_BITS+3) * (PART_BITS+4);
+  int ntrims   = 8 * 2;
   int nonce = 0;
   int range = 1;
   char header[HEADERLEN];
