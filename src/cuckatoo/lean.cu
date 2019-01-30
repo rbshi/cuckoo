@@ -33,9 +33,11 @@ typedef uint64_t u64; // save some typing
 #endif
 
 #ifndef IDXSHIFT
-#define IDXSHIFT (PART_BITS + 8)
+//#define IDXSHIFT (PART_BITS + 8)
+#define IDXSHIFT (PART_BITS + 2)
 #endif
-#define MAXEDGES (NEDGES >> IDXSHIFT)
+//#define MAXEDGES (NEDGES >> IDXSHIFT)
+#define MAXEDGES NEDGES
 
 const u64 edgeBytes = NEDGES/8;
 const u64 nodeBytes = (NEDGES>>PART_BITS)/8;
@@ -163,13 +165,15 @@ struct edgetrimmer {
     checkCudaErrors(cudaMemset(alive.bits, 0, edgeBytes));
     for (u32 round=0; round < tp.ntrims; round++) {
       for (u32 part = 0; part <= PART_MASK; part++) {
+
         checkCudaErrors(cudaMemset(nonleaf.bits, 0, nodeBytes));
         if (abort) return false;
         count_node_deg<<<tp.blocks,tp.tpb>>>(*dipkeys, dt->alive, dt->nonleaf, round&1, part);
         if (abort) return false;
         kill_leaf_edges<<<tp.blocks,tp.tpb>>>(*dipkeys, dt->alive, dt->nonleaf, round&1, part);
         if (abort) return false;
-      }
+
+		}
     }
     return true;
   }
@@ -183,7 +187,7 @@ public:
   u64 *bits;
   proof sols[MAXSOLS];
 
-  solver_ctx(const trimparams tp, bool mutate_nonce) : trimmer(tp), cg(MAXEDGES, MAXEDGES, MAXSOLS, IDXSHIFT) {
+  solver_ctx(const trimparams tp, bool mutate_nonce) : trimmer(tp), cg(MAXEDGES, MAXEDGES, MAXSOLS) {
     bits = new u64[NEDGES/64];
     mutatenonce = mutate_nonce;
   }
@@ -206,7 +210,7 @@ public:
         u32 ffs = __builtin_ffsll(alive64);
         nonce += ffs; alive64 >>= ffs;
         word_t u=sipnode(&trimmer.sipkeys, nonce, 0), v=sipnode(&trimmer.sipkeys, nonce, 1);
-	cg.add_compress_edge(u, v);
+	cg.add_edge(u, v);
         if (ffs & 64) break; // can't shift by 64
       }
     }
@@ -220,6 +224,17 @@ public:
     trimmer.abort = false;
     if (!trimmer.trim()) // trimmer aborted
       return 0;
+	
+	cudaError_t errSync  = cudaGetLastError();
+	cudaError_t errAsync = cudaDeviceSynchronize();
+	if (errSync != cudaSuccess) {
+		  printf("Sync kernel error: %s\n", cudaGetErrorString(errSync));
+		  exit(EXIT_FAILURE);
+	}
+	if (errAsync != cudaSuccess){
+		printf("Async kernel error: %s\n", cudaGetErrorString(errAsync));
+		exit(EXIT_FAILURE);
+	}
 
     cudaMemcpy(bits, trimmer.alive.bits, edgeBytes, cudaMemcpyDeviceToHost);
     u32 nedges = 0;
